@@ -13,7 +13,7 @@ from tqdm.auto import tqdm
 from utils import timer
 
 
-class SparseRetrievalFaiss(self):
+class FaissRetrieval(self):
     def __init__(
         self,
         tokenize_fn,

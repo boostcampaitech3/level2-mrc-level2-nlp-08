@@ -14,7 +14,7 @@ from tqdm.auto import tqdm
 from transformers import AutoTokenizer
 from utils import timer, load_dataset_from_disk
 from SparseRetrieval import SparseRetrieval
-from SparseRetrievalFaiss import SparseRetrievalFaiss
+from FaissRetrieval import FaissRetrieval
 
 def main(args):
     # Test sparse
@@ -34,9 +34,9 @@ def main(args):
 
     query = "대통령을 포함한 미국의 행정부 견제권을 갖는 국가 기관은?"
     
-    # 4. sparse retrieval
+    # 4. retrieval
     if args.use_faiss:
-        retriever = SparseRetrievalFaiss(
+        retriever = FaissRetrieval(
         tokenize_fn=tokenizer.tokenize,
         data_path=args.data_path,
         context_path=args.context_path,
