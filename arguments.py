@@ -1,6 +1,16 @@
 from dataclasses import dataclass, field
 from typing import Optional
+from transformers import TrainingArguments, HfArgumentParser
+import configparser
 
+def return_arg():
+    parser = HfArgumentParser(
+        (ModelArguments, DataTrainingArguments, MyTrainArguments)
+    )
+
+    [model_args, data_args, training_args,_] = parser.parse_args_into_dataclasses(return_remaining_strings=True)
+
+    return model_args, data_args, training_args
 
 @dataclass
 class ModelArguments:
@@ -27,6 +37,14 @@ class ModelArguments:
         },
     )
 
+@dataclass
+class MyTrainArguments(TrainingArguments):
+
+    output_dir: str = field(
+        default='./results',
+        metadata={"help": "The output directory where the model predictions and checkpoints will be written."},
+    )
+    
 
 @dataclass
 class DataTrainingArguments:

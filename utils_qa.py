@@ -75,7 +75,7 @@ def postprocess_qa_predictions(
         version_2_with_negative (:obj:`bool`, `optional`, defaults to :obj:`False`):
             정답이 없는 데이터셋이 포함되어있는지 여부를 나타냄
         n_best_size (:obj:`int`, `optional`, defaults to 20):
-            답변을 찾을 때 생성할 n-best prediction 총 개수 --> 답 후보군?
+            답변을 찾을 때 생성할 n-best prediction 총 개수
         max_answer_length (:obj:`int`, `optional`, defaults to 30):
             생성할 수 있는 답변의 최대 길이
         null_score_diff_threshold (:obj:`float`, `optional`, defaults to 0):
@@ -131,7 +131,7 @@ def postprocess_qa_predictions(
 
         # 현재 example에 대한 모든 feature 생성합니다.
         for feature_index in feature_indices:
-            # 각 feature에 대한 모든 prediction을 가져옵니다.
+            # 각 featureure에 대한 모든 prediction을 가져옵니다.
             start_logits = all_start_logits[feature_index]
             end_logits = all_end_logits[feature_index]
             # logit과 original context의 logit을 mapping합니다.
@@ -142,7 +142,7 @@ def postprocess_qa_predictions(
             )
 
             # minimum null prediction을 업데이트 합니다.
-            feature_null_score = start_logits[0] + end_logits[0]  # --> index 0 == null ?
+            feature_null_score = start_logits[0] + end_logits[0]
             if (
                 min_null_prediction is None
                 or min_null_prediction["score"] > feature_null_score
