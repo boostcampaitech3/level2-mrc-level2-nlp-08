@@ -73,20 +73,8 @@ def main(args):
 
 
 if __name__ == "__main__":
+    with open('./configs/retrieval_args.yaml') as f:
+        configs = yaml.load(f, Loader=yaml.FullLoader)
+    args = argparse.Namespace(**configs)
 
-    parser = argparse.ArgumentParser(description="")
-    
-    parser.add_argument("--dataset_name", metavar="./data/train_dataset", type=str, help="")
-    parser.add_argument("--model_name_or_path", metavar="bert-base-multilingual-cased", type=str, help="")
-    parser.add_argument("--data_path", metavar="./data", type=str, help="")
-    parser.add_argument("--context_path", metavar="wikipedia_documents", type=str, help="")
-    parser.add_argument("--use_faiss", metavar=False, type=bool, help="")
-    parser.add_argument("--topk", metavar=1, type=int, help="")
-
-    args = parser.parse_args()
     main(args)
-    
-    # # yaml version - use config as dictionary : data_path = config["data_path"]
-    # with open('./config.yaml') as f:
-    #     config = yaml.safe_load(f)
-    # main(config)
