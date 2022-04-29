@@ -147,7 +147,7 @@ class FaissRetrieval(self):
                     queries, k=topk
                 )
             for idx, example in enumerate(
-                tqdm(query_or_dataset, desc="Sparse retrieval: ")
+                tqdm(query_or_dataset, desc="Faiss retrieval: ")
             ):
                 tmp = {
                     # Query와 해당 id를 반환합니다.
