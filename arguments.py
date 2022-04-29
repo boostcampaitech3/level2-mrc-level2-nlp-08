@@ -1,14 +1,21 @@
 from dataclasses import dataclass, field
 from typing import Optional
 from transformers import TrainingArguments, HfArgumentParser
-import configparser
+import yaml
 
 def return_arg():
-    parser = HfArgumentParser(
-        (ModelArguments, DataTrainingArguments, MyTrainArguments)
-    )
+    # parser = HfArgumentParser(
+    #     (ModelArguments, DataTrainingArguments, MyTrainArguments)
+    # )
 
-    [model_args, data_args, training_args,_] = parser.parse_args_into_dataclasses(return_remaining_strings=True)
+    # [model_args, data_args, training_args,_] = parser.parse_args_into_dataclasses(return_remaining_strings=True)
+    
+    with open('./training_args.yaml') as f:
+        configs = yaml.load(f, Loader=yaml.FullLoader)
+    training_arguments, model_arguments, data_arguments = configs['TrainingArguments'], configs['ModelArguments'], configs['DataTrainingArguments']
+    model_args = ModelArguments(**model_arguments)
+    data_args = DataTrainingArguments(**data_arguments)
+    training_args = TrainingArguments(**training_arguments)
 
     return model_args, data_args, training_args
 
