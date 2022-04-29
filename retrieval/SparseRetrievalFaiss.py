@@ -13,7 +13,7 @@ from tqdm.auto import tqdm
 from utils import timer
 
 
-class SparseRetrieval(self):
+class SparseRetrievalFaiss(self):
     def __init__(
         self,
         tokenize_fn,
@@ -59,37 +59,6 @@ class SparseRetrieval(self):
 
         self.indexer = None  # build_faiss()로 생성합니다.
         build_faiss(self, num_clusters=64)
-        
-    def get_sparse_embedding(self) -> NoReturn:
-
-        """
-        Summary:
-            Passage Embedding을 만들고
-            TFIDF와 Embedding을 pickle로 저장합니다.
-            만약 미리 저장된 파일이 있으면 저장된 pickle을 불러옵니다.
-        """
-
-        # Pickle을 저장합니다.
-        pickle_name = f"sparse_embedding.bin"
-        tfidfv_name = f"tfidv.bin"
-        emd_path = os.path.join(self.data_path, pickle_name)
-        tfidfv_path = os.path.join(self.data_path, tfidfv_name)
-
-        if os.path.isfile(emd_path) and os.path.isfile(tfidfv_path):
-            with open(emd_path, "rb") as file:
-                self.p_embedding = pickle.load(file)
-            with open(tfidfv_path, "rb") as file:
-                self.tfidfv = pickle.load(file)
-            print("Embedding pickle load.")
-        else:
-            print("Build passage embedding")
-            self.p_embedding = self.tfidfv.fit_transform(self.contexts)
-            print(self.p_embedding.shape)
-            with open(emd_path, "wb") as file:
-                pickle.dump(self.p_embedding, file)
-            with open(tfidfv_path, "wb") as file:
-                pickle.dump(self.tfidfv, file)
-            print("Embedding pickle saved.")
 
     def build_faiss(self, num_clusters=64) -> NoReturn:
 
