@@ -1,11 +1,7 @@
 import logging
-import os
 import sys
 from typing import NoReturn
-
 import os
-import sys
-
 import torch.cuda
 
 from arguments import *
@@ -24,7 +20,9 @@ from transformers import (
     set_seed,
 )
 from utils_qa import check_no_error, postprocess_qa_predictions
+import wandb
 
+# wandb.init(project="ODQA", entity="bo-lim",run_name=)
 logger = logging.getLogger(__name__)
 
 def main():
@@ -187,7 +185,8 @@ def run_mrc(
         elif os.path.isdir(model_args.model_name_or_path):
             checkpoint = model_args.model_name_or_path
         else:
-            checkpoint = None
+            checkpoint = False
+        print('ck',checkpoint)
         train_result = trainer.train(resume_from_checkpoint=checkpoint)
         trainer.save_model()  # Saves the tokenizer too for easy upload
 
