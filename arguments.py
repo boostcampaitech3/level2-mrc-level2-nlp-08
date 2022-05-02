@@ -12,7 +12,9 @@ def return_arg():
     
     with open('./configs/training_args.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
-    training_arguments, model_arguments, data_arguments = configs['TrainingArguments'], configs['ModelArguments'], configs['DataTrainingArguments']
+    training_arguments, model_arguments, data_arguments = configs['TrainingArguments'], \
+                                                          configs['ModelArguments'], \
+                                                          configs['DataTrainingArguments']
     model_args = ModelArguments(**model_arguments)
     data_args = DataTrainingArguments(**data_arguments)
     training_args = TrainingArguments(**training_arguments)
@@ -42,6 +44,12 @@ class ModelArguments:
         metadata={
             "help": "Pretrained tokenizer name or path if not the same as model_name"
         },
+    )
+    wandb_name: Optional[str] = field(
+        default = 'Not Setting',
+        metadata={
+            "help" : "Setting the Wandb Project Name"
+        }
     )
 
 @dataclass
@@ -114,4 +122,8 @@ class DataTrainingArguments:
     )
     use_faiss: bool = field(
         default=False, metadata={"help": "Whether to build with faiss"}
+    )
+
+    use_checkpoint: bool=field(
+        default=True, metadata={"help": "When you train, whether use checkpoint"}
     )

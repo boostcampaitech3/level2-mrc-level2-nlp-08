@@ -1,11 +1,7 @@
 import logging
 import os
-import sys
+import wandb
 from typing import NoReturn
-
-import os
-import sys
-
 import torch.cuda
 
 from arguments import *
@@ -31,6 +27,7 @@ def main():
     torch.cuda.empty_cache()
     model_args, data_args, training_args = return_arg()
 
+    training_args.learning_rate = float(training_args.learning_rate)
     """
     # logging 설정
     logging.basicConfig(
@@ -65,10 +62,6 @@ def main():
         config=config,
     )
 
-    #####################
-    training_args.do_train = True
-    training_args.do_eval = True
-    ####################
     if training_args.do_train or training_args.do_eval:
         run_mrc(data_args, training_args, model_args, tokenizer, model)
 
@@ -79,6 +72,8 @@ def run_mrc(
     tokenizer,
     model,
 ) -> NoReturn:
+
+    wandb.init(project="mrc", entity="violetto", name=model_args.wandb_name)
 
     datasets = load_from_disk(data_args.dataset_name)
 
@@ -182,13 +177,16 @@ def run_mrc(
 
     # Training
     if training_args.do_train:
-        if last_checkpoint is not None:
-            checkpoint = last_checkpoint
-        elif os.path.isdir(model_args.model_name_or_path):
-            checkpoint = model_args.model_name_or_path
+        if data_args.use_checkpoint:
+            if last_checkpoint is not None:
+                checkpoint = last_checkpoint
+            elif os.path.isdir(model_args.model_name_or_path):
+                checkpoint = model_args.model_name_or_path
+            else:
+                checkpoint = None
+            train_result = trainer.train(resume_from_checkpoint=checkpoint)
         else:
-            checkpoint = None
-        train_result = trainer.train(resume_from_checkpoint=checkpoint)
+            train_result = trainer.train()
         trainer.save_model()  # Saves the tokenizer too for easy upload
 
         metrics = train_result.metrics
@@ -199,6 +197,7 @@ def run_mrc(
         trainer.save_state()
 
         output_train_file = os.path.join(training_args.output_dir, "train_results.txt")
+
 
         with open(output_train_file, "w") as writer:
             logger.info("***** Train results *****")
