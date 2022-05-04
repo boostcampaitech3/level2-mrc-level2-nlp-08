@@ -17,3 +17,28 @@ def load_dataset_from_disk(dataset_name):
     )  # train dev 를 합친 4192 개 질문에 대해 모두 테스트
     
     return full_ds
+
+class BertEncoder(BertPreTrainedModel):
+
+    def __init__(self, config):
+        super(BertEncoder, self).__init__(config)
+
+        self.bert = BertModel(config)
+        self.init_weights()
+      
+      
+    def forward(
+            self,
+            input_ids, 
+            attention_mask=None,
+            token_type_ids=None
+        ): 
+  
+        outputs = self.bert(
+            input_ids,
+            attention_mask=attention_mask,
+            token_type_ids=token_type_ids
+        )
+        
+        pooled_output = outputs[1]
+        return pooled_output
