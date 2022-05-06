@@ -8,13 +8,14 @@ import argparse, yaml
 import faiss
 import numpy as np
 import pandas as pd
-from datasets import Dataset, concatenate_datasets, load_from_disk
+
 from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm.auto import tqdm
 from transformers import AutoTokenizer
 from utils import timer, load_dataset_from_disk
 from SparseRetrieval import SparseRetrieval
 from FaissRetrieval import FaissRetrieval
+from BM25 import BM25_PLUS
 
 def main(args):
     # Test sparse
@@ -54,11 +55,18 @@ def main(args):
             print("correct retrieval result by faiss", df["correct"].sum() / len(df))
     
     else:
-        retriever = SparseRetrieval(
-        tokenize_fn=tokenizer.tokenize,
-        data_path=args.data_path,
-        context_path=args.context_path,
-        )
+        if args.bm25:
+            retriever = BM25_PLUS(
+                tokenize_fn=tokenizer.tokenize,
+                data_path=args.data_path,
+                context_path=args.context_path,
+            )
+        else:
+            retriever = SparseRetrieval(
+            tokenize_fn=tokenizer.tokenize,
+            data_path=args.data_path,
+            context_path=args.context_path,
+            )
         
         # test single query
         with timer("single query by exhaustive search"):
@@ -73,7 +81,7 @@ def main(args):
 
 
 if __name__ == "__main__":
-    with open('./configs/retrieval_args.yaml') as f:
+    with open('../configs_bolim/retrieval_args.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
     args = argparse.Namespace(**configs)
 
