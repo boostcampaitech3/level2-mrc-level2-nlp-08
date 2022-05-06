@@ -220,7 +220,7 @@ class BM25_PLUS:
 
             with open(score_path, "wb") as f:
                 pickle.dump(doc_scores,f)
-            with open(indice_path, "wb") as file:
+            with open(indice_path, "wb") as f:
                 pickle.dump(doc_indices,f)
             print("Load BM25 pickle")
 
