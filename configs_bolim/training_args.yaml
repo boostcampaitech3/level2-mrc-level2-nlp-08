@@ -1,13 +1,13 @@
 TrainingArguments:
-    output_dir: './output/'
+    output_dir: './output(20)/'
     save_total_limit: 5
     save_steps: 500
     seed: 42
 
-    num_train_epochs: 5
+    num_train_epochs: 4
     learning_rate: 0.00002
-    per_device_train_batch_size: 32
-    per_device_eval_batch_size: 32
+    per_device_train_batch_size: 16
+    per_device_eval_batch_size: 16
 
     weight_decay: 0
     lr_scheduler_type: 'linear'
@@ -32,18 +32,18 @@ TrainingArguments:
     label_smoothing_factor: 0.0
 
     report_to: 'wandb'
-
+    run_name: 'bolim/top_k 20-rogL'
 
 
 ModelArguments:
-    model_name_or_path: 'klue/bert-base'
+    model_name_or_path: 'klue/roberta-large'
     config_name: null
     tokenizer_name: null
 
 
 DataTrainingArguments:
-    dataset_name: '../../data/train_dataset'
-    overwrite_cache: False
+    dataset_name: '../data/train_dataset'
+    overwrite_cache: True
     preprocessing_num_workers: null
 
     max_seq_length: 384
@@ -53,5 +53,5 @@ DataTrainingArguments:
     
     eval_retrieval: True
     num_clusters: 64
-    top_k_retrieval: 10
+    top_k_retrieval: 20
     use_faiss: False

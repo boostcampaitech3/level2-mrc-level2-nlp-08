@@ -1,11 +1,7 @@
 import logging
-import os
 import sys
 from typing import NoReturn
-
 import os
-import sys
-
 import torch.cuda
 
 from arguments import *
@@ -24,7 +20,9 @@ from transformers import (
     set_seed,
 )
 from utils_qa import check_no_error, postprocess_qa_predictions
+import wandb
 
+# wandb.init(project="ODQA", entity="bo-lim",run_name='bolim/top_k 10->30')
 logger = logging.getLogger(__name__)
 
 def main():
@@ -96,6 +94,8 @@ def run_mrc(
     # Padding에 대한 옵션을 설정합니다.
     # (question|context) 혹은 (context|question)로 세팅 가능합니다.
     pad_on_right = tokenizer.padding_side == "right"
+
+
 
     # 오류가 있는지 확인합니다.
     last_checkpoint, max_seq_length = check_no_error(
