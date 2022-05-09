@@ -4,20 +4,20 @@ from transformers import TrainingArguments, HfArgumentParser
 import yaml
 
 def return_arg():
-    # parser = HfArgumentParser(
-    #     (ModelArguments, DataTrainingArguments, MyTrainArguments)
-    # )
 
-    # [model_args, data_args, training_args,_] = parser.parse_args_into_dataclasses(return_remaining_strings=True)
-    
     with open('./configs/training_args.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
-    training_arguments, model_arguments, data_arguments = configs['TrainingArguments'], configs['ModelArguments'], configs['DataTrainingArguments']
+    training_arguments, model_arguments, data_arguments, wandb_arguments = configs['TrainingArguments'], \
+                                                          configs['ModelArguments'], \
+                                                          configs['DataTrainingArguments'], \
+                                                          configs['WandbArguments']
+
     model_args = ModelArguments(**model_arguments)
     data_args = DataTrainingArguments(**data_arguments)
     training_args = TrainingArguments(**training_arguments)
+    wandb_args = WandbArguments(**wandb_arguments)
 
-    return model_args, data_args, training_args
+    return model_args, data_args, training_args, wandb_args
 
 @dataclass
 class ModelArguments:
@@ -43,15 +43,30 @@ class ModelArguments:
             "help": "Pretrained tokenizer name or path if not the same as model_name"
         },
     )
+    use_checkpoint: Optional[bool] = field(
+        default=True,
+        metadata={
+            "help": "Use Checkpoint"
+        },
+    )
 
 @dataclass
-class MyTrainArguments(TrainingArguments):
-
-    output_dir: str = field(
-        default='./results',
-        metadata={"help": "The output directory where the model predictions and checkpoints will be written."},
+class WandbArguments():
+    project: Optional[str] = field(
+        default='mrc',
+        metadata={"help": "Wandb Project Name"}
     )
-    
+
+    name: Optional[str] = field(
+        default='No_Setting',
+        metadata={"help": "Wandb Experiments Name"}
+    )
+
+    entity: Optional[str] = field(
+        default='violetto',
+        metadata={"help": "Wandb User Name"}
+    )
+
 
 @dataclass
 class DataTrainingArguments:

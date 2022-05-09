@@ -46,14 +46,15 @@ def prepare_train_features(examples, tokenizer, pad_on_right,
                            context_column_name, question_column_name, answer_column_name,
                            data_args, max_seq_length):
 
+
     # truncation과 padding(length가 짧을때만)을 통해 toknization을 진행하며, stride를 이용하여 overflow를 유지합니다.
     # 각 example들은 이전의 context와 조금씩 겹치게됩니다.
     tokenized_examples = tokenizer(
         examples[question_column_name if pad_on_right else context_column_name],
         examples[context_column_name if pad_on_right else question_column_name],
         truncation="only_second" if pad_on_right else "only_first",
-        max_length=max_seq_length,
-        stride=data_args.doc_stride,
+        max_length=max_seq_length,             # 어느정도 길이로 자를 것인가(Encoding 이후 Token 개수 기준)
+        stride=data_args.doc_stride,           # 얼마나 겹치게 할 것인가
         return_overflowing_tokens=True,
         return_offsets_mapping=True,
         # return_token_type_ids=False, # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.

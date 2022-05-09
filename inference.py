@@ -8,6 +8,8 @@ Open-Domain Question Answering 을 수행하는 inference 코드 입니다.
 import logging
 import sys
 from typing import Callable, Dict, List, NoReturn, Tuple
+
+import torch
 import yaml
 
 import numpy as np
@@ -42,7 +44,7 @@ def main():
     # 가능한 arguments 들은 ./arguments.py 나 transformer package 안의 src/transformers/training_args.py 에서 확인 가능합니다.
     # --help flag 를 실행시켜서 확인할 수 도 있습니다.
 
-    with open('./configs/training_args.yaml') as f:
+    with open('./configs/inference_args.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
     training_arguments, model_arguments, data_arguments = configs['TrainingArguments'], configs['ModelArguments'], configs['DataTrainingArguments']
     model_args = ModelArguments(**model_arguments)
@@ -72,6 +74,7 @@ def main():
 
     # AutoConfig를 이용하여 pretrained model 과 tokenizer를 불러옵니다.
     # argument로 원하는 모델 이름을 설정하면 옵션을 바꿀 수 있습니다.
+
     config = AutoConfig.from_pretrained(
         model_args.config_name
         if model_args.config_name
@@ -83,11 +86,15 @@ def main():
         else model_args.model_name_or_path,
         use_fast=True,
     )
+    """
     model = AutoModelForQuestionAnswering.from_pretrained(
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
         config=config,
     )
+    """
+
+    model = torch.load('./output/full_model.pt')
 
     # True일 경우 : run passage retrieval
     if data_args.eval_retrieval:
@@ -175,6 +182,7 @@ def run_mrc(
     pad_on_right = tokenizer.padding_side == "right"
 
     # 오류가 있는지 확인합니다.
+
     last_checkpoint, max_seq_length = check_no_error(
         data_args, training_args, datasets, tokenizer
     )

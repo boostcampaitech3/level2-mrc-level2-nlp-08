@@ -1,5 +1,6 @@
 TrainingArguments:
     output_dir: './prediction/'
+    overwrite_output_dir: True
     save_total_limit: 5
     save_steps: 200
     seed: 42
@@ -26,13 +27,13 @@ TrainingArguments:
 
 
 ModelArguments:
-    model_name_or_path: 'klue/bert-base'
-    config_name: null
-    tokenizer_name: null
+    model_name_or_path: './output/model'
+    config_name: 'klue/roberta-large'
+    tokenizer_name: 'klue/roberta-large'
 
 
 DataTrainingArguments:
-    dataset_name: '../data/train_dataset'
+    dataset_name: '../data/test_dataset'
     overwrite_cache: False
     preprocessing_num_workers: null
 
