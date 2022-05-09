@@ -10,8 +10,20 @@ import torch.cuda
 
 from arguments import *
 from Data.preprocessing import *
+import wandb
 
 from datasets import DatasetDict, load_from_disk, load_metric
+from konlpy.tag import Kkma
+import pandas as pd
+
+from tqdm import tqdm
+
+import datasets.arrow_dataset as da
+
+
+from datasets import load_dataset
+
+from model import Birdirectional_model
 from trainer_qa import QuestionAnsweringTrainer
 from transformers import (
     AutoConfig,
@@ -21,36 +33,27 @@ from transformers import (
     EvalPrediction,
     HfArgumentParser,
     TrainingArguments,
-    set_seed,
+    set_seed, PreTrainedTokenizerFast,
 )
+from kobert_tokenizer import KoBERTTokenizer
+
 from utils_qa import check_no_error, postprocess_qa_predictions
 
 logger = logging.getLogger(__name__)
 
 def main():
     torch.cuda.empty_cache()
-    model_args, data_args, training_args = return_arg()
+    model_args, data_args, training_args, wandb_args = return_arg()
 
-    """
-    # logging 설정
-    logging.basicConfig(
-        format="%(asctime)s - %(levelname)s - %(name)s -    %(message)s",
-        datefmt="%m/%d/%Y %H:%M:%S",
-        handlers=[logging.StreamHandler(sys.stdout)],
-    )
-
-    # verbosity 설정 : Transformers logger의 정보로 사용합니다 (on main process only)
-    logger.info("Training/evaluation parameters %s", training_args)
-    """
+    wandb.init(project=wandb_args.project, name=wandb_args.name, entity=wandb_args.entity)
 
     set_seed(training_args.seed)
-
-######################################################################
 
     config = AutoConfig.from_pretrained(
         model_args.config_name
         if model_args.config_name is not None else model_args.model_name_or_path,
     )
+
     tokenizer = AutoTokenizer.from_pretrained(
         model_args.tokenizer_name
         if model_args.tokenizer_name is not None else model_args.model_name_or_path,
@@ -59,16 +62,14 @@ def main():
         # rust version이 비교적 속도가 빠릅니다.
         use_fast=True,
     )
+
     model = AutoModelForQuestionAnswering.from_pretrained(
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
         config=config,
     )
 
-    #####################
-    training_args.do_train = True
-    training_args.do_eval = True
-    ####################
+
     if training_args.do_train or training_args.do_eval:
         run_mrc(data_args, training_args, model_args, tokenizer, model)
 
@@ -98,20 +99,67 @@ def run_mrc(
     pad_on_right = tokenizer.padding_side == "right"
 
     # 오류가 있는지 확인합니다.
+    """
     last_checkpoint, max_seq_length = check_no_error(
         data_args, training_args, datasets, tokenizer
     )
+    """
+    last_checkpoint = None
+    max_seq_length = data_args.max_seq_length
+
+    dict_data = {"tokenizer": tokenizer, "pad_on_right": pad_on_right, "context_column_name": context_column_name,
+                 "question_column_name": question_column_name,
+                 "answer_column_name": answer_column_name, "data_args": data_args, "max_seq_length": max_seq_length}
+
     if training_args.do_train:
         if "train" not in datasets:
             raise ValueError("--do_train requires a train dataset")
         train_dataset = datasets["train"]
 
+
+        """
+        #############
+        train_data = train_dataset.to_pandas()
+
+        def get_jaccard_sim(str1, str2):
+            a = set(str1.split())
+            b = set(str2.split())
+            c = a.intersection(b)
+            return float(len(c)) / (len(a) + len(b) - len(c))
+
+        sim = []
+        for i in tqdm(range(len(train_data))):
+            sim.append(get_jaccard_sim(train_data['question'][i], train_data['title'][i]))
+
+        train_data['sim'] = sim
+
+        train_data.sort_values('sim', ascending=False, inplace=True)
+
+        del train_data['sim'], train_data['__index_level_0__']
+
+
+        train_dataset = da.Dataset.from_pandas(train_data)
+
+        #############
+        """
+
+        ###############
+        # Kosquad 합치는 방법
+        kosquad = load_dataset("squad_kor_v1")
+
+        df = train_dataset.to_pandas().drop(['__index_level_0__'], axis = 1)
+        df2 = kosquad['train'].to_pandas()[['title', 'context', 'question', 'answers']]
+        df3 = kosquad['validation'].to_pandas()[['title', 'context', 'question', 'answers']]
+
+        df = pd.concat([df, df2, df3], axis = 0)
+
+        train_dataset = da.Dataset.from_pandas(df)
+        
+        #####################
+
         # dataset에서 train feature를 생성합니다.
         train_dataset = train_dataset.map(
-            function=lambda x: prepare_train_features(x, tokenizer=tokenizer, pad_on_right=pad_on_right,
-                                                      context_column_name=context_column_name, question_column_name=question_column_name,
-                                                      answer_column_name=answer_column_name,
-                                                      data_args=data_args, max_seq_length=max_seq_length),
+            function=lambda x: prepare_train_features(x, **dict_data),
             batched=True,
             num_proc=data_args.preprocessing_num_workers,
             remove_columns=column_names,
@@ -123,10 +171,7 @@ def run_mrc(
 
         # Validation Feature 생성
         eval_dataset = eval_dataset.map(
-            function=lambda x: prepare_validation_features(x, tokenizer=tokenizer, pad_on_right=pad_on_right,
-                                                      context_column_name=context_column_name, question_column_name=question_column_name,
-                                                      answer_column_name=answer_column_name,
-                                                      data_args=data_args, max_seq_length=max_seq_length),
+            function=lambda x: prepare_validation_features(x, **dict_data),
             batched=True,
             num_proc=data_args.preprocessing_num_workers,
             remove_columns=column_names,
@@ -188,8 +233,12 @@ def run_mrc(
             checkpoint = model_args.model_name_or_path
         else:
             checkpoint = None
+
+        if not model_args.use_checkpoint:
+            checkpoint = None
+
         train_result = trainer.train(resume_from_checkpoint=checkpoint)
-        trainer.save_model()  # Saves the tokenizer too for easy upload
+        trainer.save_model('./output/model')  # Saves the tokenizer too for easy upload
 
         metrics = train_result.metrics
         metrics["train_samples"] = len(train_dataset)
@@ -210,6 +259,8 @@ def run_mrc(
         trainer.state.save_to_json(
             os.path.join(training_args.output_dir, "trainer_state.json")
         )
+
+        torch.save(model, './output/full_model.pt')
 
     # Evaluation
     if training_args.do_eval:
