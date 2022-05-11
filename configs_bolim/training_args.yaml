@@ -1,0 +1,80 @@
+TrainingArguments:
+    output_dir: './output(20)/'
+    save_total_limit: 5
+    save_steps: 200
+    seed: 42
+
+    num_train_epochs: 4
+    learning_rate: 0.00002
+    per_device_train_batch_size: 16
+    per_device_eval_batch_size: 16
+
+    weight_decay: 0.01
+    lr_scheduler_type: 'linear'
+    # COSINE_WITH_RESTARTS
+    gradient_accumulation_steps: 1
+    
+    warmup_ratio: 0.0
+    warmup_steps: 0
+
+    logging_dir: './logs'
+    logging_steps: 100
+
+    evaluation_strategy: 'steps'
+    eval_steps: 50
+    load_best_model_at_end: True
+
+    metric_for_best_model: 'eval_exact_match'
+    greater_is_better: True
+
+
+    do_train: True
+    do_eval: True
+
+    fp16: True
+    fp16_opt_level: 'O1'
+
+    label_smoothing_factor: 0.0
+
+    report_to: 'wandb'
+<<<<<<< HEAD:configs/training_args.yaml
+=======
+    run_name: 'bolim/top_k 20-rogL'
+
+>>>>>>> a8b0f038233d3bfbd706db66d04c89ce8cd7eeed:configs_bolim/training_args.yaml
+
+ModelArguments:
+    model_name_or_path: 'klue/roberta-large'
+    config_name: null
+    tokenizer_name: null
+    use_checkpoint: False
+
+
+DataTrainingArguments:
+    dataset_name: '../data/train_dataset'
+<<<<<<< HEAD:configs/training_args.yaml
+    overwrite_cache: False
+=======
+    overwrite_cache: True
+>>>>>>> a8b0f038233d3bfbd706db66d04c89ce8cd7eeed:configs_bolim/training_args.yaml
+    preprocessing_num_workers: null
+
+    max_seq_length: 384
+    pad_to_max_length: False
+    doc_stride: 128
+    max_answer_length: 30
+
+    eval_retrieval: True
+    num_clusters: 64
+<<<<<<< HEAD:configs/training_args.yaml
+    top_k_retrieval: 10
+    use_faiss: False
+
+WandbArguments:
+    project: "mrc"
+    name: "add_question_withValidation"
+    entity: "violetto"
+=======
+    top_k_retrieval: 20
+    use_faiss: False
+>>>>>>> a8b0f038233d3bfbd706db66d04c89ce8cd7eeed:configs_bolim/training_args.yaml

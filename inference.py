@@ -26,7 +26,8 @@ from datasets import (
     load_from_disk,
     load_metric,
 )
-from retrieval import SparseRetrieval
+from retrieval.SparseRetrieval import SparseRetrieval
+from retrieval.BM25 import BM25_PLUS
 from trainer_qa import QuestionAnsweringTrainer
 from transformers import (
     AutoConfig,
@@ -51,7 +52,7 @@ def main():
 
     with open('./configs/inference_args.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
-    training_arguments, model_arguments, data_arguments = configs['TrainingArguments'], configs['ModelArguments'], configs['DataTrainingArguments']
+    training_arguments, model_arguments, data_arguments= configs['TrainingArguments'], configs['ModelArguments'], configs['DataTrainingArguments']
     model_args = ModelArguments(**model_arguments)
     data_args = DataTrainingArguments(**data_arguments)
     training_args = TrainingArguments(**training_arguments)
@@ -122,9 +123,18 @@ def run_sparse_retrieval(
 ) -> DatasetDict:
 
     # Query에 맞는 Passage들을 Retrieval 합니다.
-    retriever = SparseRetrieval(
+    retriever = None
+    retriever = BM25_PLUS(
         tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
     )
+    # if data_args.bm25:
+    #     retriever = BM25(
+    #         tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
+    #     )
+    # else:
+    #     retriever = SparseRetrieval(
+    #         tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
+    #     )
     retriever.get_sparse_embedding()
 
     if data_args.use_faiss:
@@ -204,7 +214,7 @@ def run_mrc(
             stride=data_args.doc_stride,
             return_overflowing_tokens=True,
             return_offsets_mapping=True,
-            # return_token_type_ids=False, # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
+            return_token_type_ids=False, # roberta모델을 사용할 경우 False, bert를 사용할 경우 True로 표기해야합니다.
             padding="max_length" if data_args.pad_to_max_length else False,
         )
 

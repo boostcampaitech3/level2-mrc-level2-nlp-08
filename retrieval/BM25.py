@@ -2,18 +2,26 @@ import json
 import os
 import pickle
 import time
-from contextlib import contextmanager
 from typing import List, NoReturn, Optional, Tuple, Union
 import faiss
 import numpy as np
 import pandas as pd
 from datasets import Dataset, concatenate_datasets, load_from_disk
-from sklearn.feature_extraction.text import TfidfVectorizer
 from tqdm.auto import tqdm
-from utils import timer
+# from utils import timer
+from rank_bm25 import BM25Okapi, BM25Plus
+import time
+from contextlib import contextmanager
+from datasets import Dataset, concatenate_datasets, load_from_disk
 
 
-class FaissRetrieval:
+@contextmanager
+def timer(name):
+    t0 = time.time()
+    yield
+    print(f"[{name}] done in {time.time() - t0:.3f} s")
+
+class BM25_PLUS:
     def __init__(
         self,
         tokenize_fn,
@@ -50,54 +58,37 @@ class FaissRetrieval:
             dict.fromkeys([v["text"] for v in wiki.values()])
         )  # set 은 매번 순서가 바뀌므로
         print(f"Lengths of unique contexts : {len(self.contexts)}")
-        self.ids = list(range(len(self.contexts)))
+        self.tokenize_fn = tokenize_fn
 
-        # Transform by vectorizer
-        self.tfidfv = TfidfVectorizer(
-            tokenizer=tokenize_fn, ngram_range=(1, 2), max_features=50000,
-        )
-
-        self.indexer = None  # build_faiss()로 생성합니다.
-        build_faiss(self, num_clusters=64)
-
-    def build_faiss(self, num_clusters=64) -> NoReturn:
+        self.bm25 = None  # get_sparse_embedding()로 생성합니다
+    def get_sparse_embedding(self) -> NoReturn:
 
         """
         Summary:
-            속성으로 저장되어 있는 Passage Embedding을
-            Faiss indexer에 fitting 시켜놓습니다.
-            이렇게 저장된 indexer는 `get_relevant_doc`에서 유사도를 계산하는데 사용됩니다.
-
-        Note:
-            Faiss는 Build하는데 시간이 오래 걸리기 때문에,
-            매번 새롭게 build하는 것은 비효율적입니다.
-            그렇기 때문에 build된 index 파일을 저정하고 다음에 사용할 때 불러옵니다.
-            다만 이 index 파일은 용량이 1.4Gb+ 이기 때문에 여러 num_clusters로 시험해보고
-            제일 적절한 것을 제외하고 모두 삭제하는 것을 권장합니다.
+            Passage Embedding을 만들고
+            TFIDF와 Embedding을 pickle로 저장합니다.
+            만약 미리 저장된 파일이 있으면 저장된 pickle을 불러옵니다.
         """
 
-        indexer_name = f"faiss_clusters{num_clusters}.index"
-        indexer_path = os.path.join(self.data_path, indexer_name)
-        if os.path.isfile(indexer_path):
-            print("Load Saved Faiss Indexer.")
-            self.indexer = faiss.read_index(indexer_path)
+        # Pickle을 저장합니다.
+        pickle_name = f"bm25.bin"
+        emd_path = os.path.join(self.data_path, pickle_name)
 
+        if os.path.isfile(emd_path):
+            with open(emd_path, "rb") as file:
+                self.bm25 = pickle.load(file)
+            print("Embedding pickle load.")
         else:
-            p_emb = self.p_embedding.astype(np.float32).toarray()
-            emb_dim = p_emb.shape[-1]
+            print("Build passage embedding")
+            # BM25 instance 생성
+            tokenized_corpus = [self.tokenize_fn(doc) for doc in self.contexts]
+            # self.bm25 = BM25Okapi(tokenized_corpus)
+            self.bm25 = BM25Plus(tokenized_corpus)
+            with open(emd_path, "wb") as file:
+                pickle.dump(self.bm25, file)
+            print("Embedding pickle saved.")
 
-            num_clusters = num_clusters
-            quantizer = faiss.IndexFlatL2(emb_dim)
-
-            self.indexer = faiss.IndexIVFScalarQuantizer(
-                quantizer, quantizer.d, num_clusters, faiss.METRIC_L2
-            )
-            self.indexer.train(p_emb)
-            self.indexer.add(p_emb)
-            faiss.write_index(self.indexer, indexer_path)
-            print("Faiss Indexer Saved.")
-
-    def retrieve_faiss(
+    def retrieve(
         self, query_or_dataset: Union[str, Dataset], topk: Optional[int] = 1
     ) -> Union[Tuple[List, List], pd.DataFrame]:
 
@@ -105,9 +96,9 @@ class FaissRetrieval:
         Arguments:
             query_or_dataset (Union[str, Dataset]):
                 str이나 Dataset으로 이루어진 Query를 받습니다.
-                str 형태인 하나의 query만 받으면 `get_relevant_doc_faiss`을 통해 유사도를 구합니다.
+                str 형태인 하나의 query만 받으면 `get_relevant_doc`을 통해 유사도를 구합니다.
                 Dataset 형태는 query를 포함한 HF.Dataset을 받습니다.
-                이 경우 `get_relevant_doc_bulk_faiss`를 통해 유사도를 구합니다.
+                이 경우 `get_relevant_doc_bulk`를 통해 유사도를 구합니다.
             topk (Optional[int], optional): Defaults to 1.
                 상위 몇 개의 passage를 사용할 것인지 지정합니다.
 
@@ -119,19 +110,16 @@ class FaissRetrieval:
             다수의 Query를 받는 경우,
                 Ground Truth가 있는 Query (train/valid) -> 기존 Ground Truth Passage를 같이 반환합니다.
                 Ground Truth가 없는 Query (test) -> Retrieval한 Passage만 반환합니다.
-            retrieve와 같은 기능을 하지만 faiss.indexer를 사용합니다.
         """
 
-        assert self.indexer is not None, "build_faiss()를 먼저 수행해주세요."
+        assert self.bm25 is not None, "get_sparse_embedding() 메소드를 먼저 수행해줘야합니다."
 
         if isinstance(query_or_dataset, str):
-            doc_scores, doc_indices = self.get_relevant_doc_faiss(
-                query_or_dataset, k=topk
-            )
+            doc_scores, doc_indices = self.get_relevant_doc(query_or_dataset, k=topk)
             print("[Search query]\n", query_or_dataset, "\n")
 
             for i in range(topk):
-                print("Top-%d passage with score %.4f" % (i + 1, doc_scores[i]))
+                print(f"Top-{i+1} passage with score {doc_scores[i]:4f}")
                 print(self.contexts[doc_indices[i]])
 
             return (doc_scores, [self.contexts[doc_indices[i]] for i in range(topk)])
@@ -139,15 +127,13 @@ class FaissRetrieval:
         elif isinstance(query_or_dataset, Dataset):
 
             # Retrieve한 Passage를 pd.DataFrame으로 반환합니다.
-            queries = query_or_dataset["question"]
             total = []
-
-            with timer("query faiss search"):
-                doc_scores, doc_indices = self.get_relevant_doc_bulk_faiss(
-                    queries, k=topk
+            with timer("query exhaustive search with bm25"):
+                doc_scores, doc_indices = self.get_relevant_doc_bulk(
+                    query_or_dataset["question"], k=topk
                 )
             for idx, example in enumerate(
-                tqdm(query_or_dataset, desc="Faiss retrieval: ")
+                tqdm(query_or_dataset, desc="Sparse retrieval with bm25 : ")
             ):
                 tmp = {
                     # Query와 해당 id를 반환합니다.
@@ -165,11 +151,10 @@ class FaissRetrieval:
                     tmp["answers"] = example["answers"]
                 total.append(tmp)
 
-            return pd.DataFrame(total)
+            cqas = pd.DataFrame(total) # correct qa
+            return cqas
 
-    def get_relevant_doc_faiss(
-        self, query: str, k: Optional[int] = 1
-    ) -> Tuple[List, List]:
+    def get_relevant_doc(self, query: str, k: Optional[int] = 1) -> Tuple[List, List]:
 
         """
         Arguments:
@@ -181,18 +166,19 @@ class FaissRetrieval:
             vocab 에 없는 이상한 단어로 query 하는 경우 assertion 발생 (예) 뙣뙇?
         """
 
-        query_vec = self.tfidfv.transform([query])
+        with timer("transform"):
+            query_scores = self.bm25.get_scores(query)
         assert (
-            np.sum(query_vec) != 0
+            np.sum(query_scores) != 0
         ), "오류가 발생했습니다. 이 오류는 보통 query에 vectorizer의 vocab에 없는 단어만 존재하는 경우 발생합니다."
 
-        q_emb = query_vec.toarray().astype(np.float32)
-        with timer("query faiss search"):
-            D, I = self.indexer.search(q_emb, k)
+        sorted_score = np.sort(query_scores)[::-1]
+        sorted_id = np.argsort(query_scores)[::-1]
+        doc_score = sorted_score[:k]
+        doc_indices = sorted_id[:k]
+        return doc_score, doc_indices
 
-        return D.tolist()[0], I.tolist()[0]
-
-    def get_relevant_doc_bulk_faiss(
+    def get_relevant_doc_bulk(
         self, queries: List, k: Optional[int] = 1
     ) -> Tuple[List, List]:
 
@@ -205,13 +191,37 @@ class FaissRetrieval:
         Note:
             vocab 에 없는 이상한 단어로 query 하는 경우 assertion 발생 (예) 뙣뙇?
         """
+        score_path = os.path.join(self.data_path, "BM25_score.bin")
+        indice_path = os.path.join(self.data_path, "BM25_indice.bin")
 
-        query_vecs = self.tfidfv.transform(queries)
-        assert (
-            np.sum(query_vecs) != 0
-        ), "오류가 발생했습니다. 이 오류는 보통 query에 vectorizer의 vocab에 없는 단어만 존재하는 경우 발생합니다."
+        # Pickle 파일 존재 시에 불러오기
+        if os.path.isfile(score_path) and os.path.isfile(indice_path):
+            with open(score_path, "rb") as file:
+                doc_scores = pickle.load(file)
+            with open(indice_path, "rb") as file:
+                doc_indices = pickle.load(file)
+            print("Load BM25 pickle")
+        else:
+            print('Build BM25 pickle')
+            doc_scores = []
+            doc_indices = []
+            for query in tqdm(queries):
+                tokenized_query = self.tokenize_fn(query)
+                query_scores = self.bm25.get_scores(tokenized_query)
 
-        q_embs = query_vecs.toarray().astype(np.float32)
-        D, I = self.indexer.search(q_embs, k)
+                sorted_score = np.sort(query_scores)[::-1]
+                sorted_id = np.argsort(query_scores)[::-1]
 
-        return D.tolist(), I.tolist()
+                doc_scores.append(sorted_score[:k])
+                doc_indices.append(sorted_id[:k])
+            assert (
+                np.sum(doc_scores) != 0
+            ), "오류가 발생했습니다. 이 오류는 보통 query에 vectorizer의 vocab에 없는 단어만 존재하는 경우 발생합니다."
+
+            with open(score_path, "wb") as f:
+                pickle.dump(doc_scores,f)
+            with open(indice_path, "wb") as f:
+                pickle.dump(doc_indices,f)
+            print("Load BM25 pickle")
+
+        return doc_scores, doc_indices
