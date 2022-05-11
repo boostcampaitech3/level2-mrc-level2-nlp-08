@@ -8,6 +8,9 @@ Open-Domain Question Answering 을 수행하는 inference 코드 입니다.
 import logging
 import sys
 from typing import Callable, Dict, List, NoReturn, Tuple
+import pickle
+
+import datasets.arrow_dataset as da
 
 import torch
 import yaml
@@ -36,6 +39,8 @@ from transformers import (
     set_seed,
 )
 from utils_qa import check_no_error, postprocess_qa_predictions
+
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -226,7 +231,47 @@ def run_mrc(
             ]
         return tokenized_examples
 
-    eval_dataset = datasets["validation"]
+
+    with open("f.pickle", "rb") as f:
+        ori_val = pickle.load(f)  # 개발자가 만든 Class의 Instance 또한 저장 가능
+
+    with open("e.pickle", "rb") as f:
+        ans_val = pickle.load(f)  # 개발자가 만든 Class의 Instance 또한 저장 가능
+
+    valid_data = datasets["validation"]
+
+    check = ['은?', '는?', '이?']
+    valid_data = datasets['validation'].to_pandas()
+    for i in tqdm(range(len(ans_val))):
+        string = ori_val[i].split()[-1]
+        for j in range(3):
+            if string.endswith(check[j]):
+                if 'who' in ans_val[i] or "사람" in ori_val[i]:
+                    valid_data['question'][i] = valid_data['question'][i].replace("?", " 누구일까요?")
+                elif 'where' in ans_val[i] or "장소" in ori_val[i]:
+                    valid_data['question'][i] = valid_data['question'][i].replace("?", " 어디일까요?")
+                elif "when" in ans_val[i] or "언제" in ori_val[i]:
+                    valid_data['question'][i] = valid_data['question'][i].replace("?", " 언제일까요?")
+                else:
+                    valid_data['question'][i] = valid_data['question'][i].replace("?", " 무엇일까요?")
+                break
+            elif '?' not in string:
+                if 'who' in ans_val[i] or "사람" in ori_val[i]:
+                    valid_data['question'][i] = valid_data['question'][i] + " 누구일까요?"
+                elif 'where' in ans_val[i] or "장소" in ori_val[i]:
+                    valid_data['question'][i] = valid_data['question'][i] + " 어디일까요?"
+                elif "when" in ans_val[i] or "언제" in ori_val[i]:
+                    valid_data['question'][i] = valid_data['question'][i] + " 언제일까요?"
+                else:
+                    valid_data['question'][i] = valid_data['question'][i] + " 무엇일까요?"
+
+                break
+
+    eval_dataset = da.Dataset.from_pandas(valid_data)
+
+    for i in range(5):
+        print(eval_dataset['question'][i])
+
 
     # Validation Feature 생성
     eval_dataset = eval_dataset.map(

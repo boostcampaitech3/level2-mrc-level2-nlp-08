@@ -46,7 +46,6 @@ def prepare_train_features(examples, tokenizer, pad_on_right,
                            context_column_name, question_column_name, answer_column_name,
                            data_args, max_seq_length):
 
-
     # truncation과 padding(length가 짧을때만)을 통해 toknization을 진행하며, stride를 이용하여 overflow를 유지합니다.
     # 각 example들은 이전의 context와 조금씩 겹치게됩니다.
     tokenized_examples = tokenizer(

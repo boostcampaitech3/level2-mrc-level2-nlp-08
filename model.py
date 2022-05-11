@@ -28,7 +28,7 @@ class CnnHead(nn.Module):
         conv1_out = self.relu(self.conv_1(x).transpose(1, 2).contiguous().squeeze(-1))
         conv3_out = self.relu(self.conv_3(x).transpose(1, 2).contiguous().squeeze(-1))
         conv5_out = self.relu(self.conv_5(x).transpose(1, 2).contiguous().squeeze(-1))
-        x = conv1_out + conv3_out + conv5_out
+        x = (conv1_out + conv3_out + conv5_out)/3
 
         return x
 
@@ -39,7 +39,9 @@ class Birdirectional_model(BertPreTrainedModel):
         config.add_pooling_layer=False
 
         self.roberta = AutoModel.from_pretrained('klue/roberta-large', config=config)
-        # self.lstm = nn.LSTM(input_size=1024, hidden_size=1024, num_layers=1, bidirectional=True, batch_first=True, bias=False)
+        self.lstm = nn.LSTM(input_size=1024, hidden_size=1024, num_layers=1, bidirectional=True, batch_first=True)
+        # self.first_output = nn.Linear(2048, 2)
+
         self.first_output = CnnHead(1024)
 
     def forward(
