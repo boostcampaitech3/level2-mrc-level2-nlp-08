@@ -23,6 +23,7 @@ from datasets import (
 )
 from retrieval.SparseRetrieval import SparseRetrieval
 from retrieval.BM25 import BM25_PLUS
+from retrieval.ElasticSearch import ElasticSearch
 from trainer_qa import QuestionAnsweringTrainer
 from transformers import (
     AutoConfig,
@@ -112,18 +113,16 @@ def run_sparse_retrieval(
 
     # Query에 맞는 Passage들을 Retrieval 합니다.
     retriever = None
+    ### BM25
     retriever = BM25_PLUS(
         tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
     )
-    # if data_args.bm25:
-    #     retriever = BM25(
-    #         tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
-    #     )
-    # else:
-    #     retriever = SparseRetrieval(
-    #         tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
-    #     )
     retriever.get_sparse_embedding()
+    ###
+    ### ES
+    # retriever = ElasticSearch(data_path=data_path, context_path=context_path)
+    # retriever.insert_data()
+    ###
 
     if data_args.use_faiss:
         retriever.build_faiss(num_clusters=data_args.num_clusters)

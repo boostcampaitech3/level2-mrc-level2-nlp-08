@@ -1,5 +1,5 @@
 TrainingArguments:
-    output_dir: './output(20)/'
+    output_dir: './output0511-base/'
     save_total_limit: 5
     save_steps: 500
     seed: 42
