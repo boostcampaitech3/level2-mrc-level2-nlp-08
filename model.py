@@ -4,10 +4,46 @@ import torch
 from torch.autograd import Variable
 from torch.nn import CrossEntropyLoss
 from torch.nn.utils.rnn import pack_padded_sequence
-from transformers import BertModel, RobertaModel, AutoModel, BertPreTrainedModel
+from transformers import BertModel, RobertaModel, AutoModel, BertPreTrainedModel, AutoModelForQuestionAnswering
 import torch.nn as nn
 from transformers.modeling_outputs import QuestionAnsweringModelOutput
 import torch.nn.functional as F
+
+def get_model(model_args, config, ):
+    if model_args.use_default:
+        model = AutoModelForQuestionAnswering.from_pretrained(
+            model_args.model_name_or_path,
+            from_tf=bool(".ckpt" in model_args.model_name_or_path),
+            config=config,
+        )
+    else:
+        model = Birdirectional_model(config = config)
+
+    return model
+
+class BiLSTMHead(nn.Module):
+    def __init__(self, input_size):
+        super().__init__()
+        self.input_size = input_size
+        self.lstm = nn.LSTM(input_size=int(input_size), hidden_size=1024, num_layers=1, bidirectional=True, batch_first=True)
+        self.final_layer = nn.Linear(1024 * 2, 2)
+        self.dropout = nn.Dropout(p=0.7)
+
+    def forward(self, x):
+        h0 = Variable(torch.zeros(
+            2, x.size(0), self.input_size
+        )).to('cuda:0')
+        c0 = Variable(torch.zeros(
+            2, x.size(0), self.input_size
+        )).to('cuda:0')
+
+        ula, (hn, cn) = self.lstm(x, (h0, c0))
+
+        self.dropout(ula)
+
+        logits = self.final_layer(ula)
+
+        return logits
 
 class CnnHead(nn.Module):
     def __init__(self, input_size):
@@ -39,10 +75,8 @@ class Birdirectional_model(BertPreTrainedModel):
         config.add_pooling_layer=False
 
         self.roberta = AutoModel.from_pretrained('klue/roberta-large', config=config)
-        self.lstm = nn.LSTM(input_size=1024, hidden_size=1024, num_layers=1, bidirectional=True, batch_first=True)
-        # self.first_output = nn.Linear(2048, 2)
-
-        self.first_output = CnnHead(1024)
+        self.cnnHead = CnnHead(1024)
+        self.lstm = BiLSTMHead(1024)
 
     def forward(
         self,
@@ -75,17 +109,7 @@ class Birdirectional_model(BertPreTrainedModel):
 
         sequence_output = outputs[0]
 
-        h0 = Variable(torch.zeros(
-            2, sequence_output.size(0), 1024
-        )).to('cuda:0')
-        c0 = Variable(torch.zeros(
-            2, sequence_output.size(0), 1024
-        )).to('cuda:0')
-
-        # ula, (hn, cn) = self.lstm(sequence_output, (h0, c0))
-
-        logits = self.first_output(sequence_output)
-
+        logits = self.lstm(sequence_output)
 
         start_logits, end_logits = logits.split(1, dim=-1)
 

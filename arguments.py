@@ -31,6 +31,13 @@ class ModelArguments:
             "help": "Path to pretrained model or model identifier from huggingface.co/models"
         },
     )
+    use_default: bool = field(
+        default=True,
+        metadata={
+            "help": "Whether you use Default Model or change Classifier(False)"
+        },
+    )
+
     config_name: Optional[str] = field(
         default=None,
         metadata={
@@ -51,7 +58,7 @@ class ModelArguments:
     )
 
 @dataclass
-class WandbArguments():
+class WandbArguments:
     project: Optional[str] = field(
         default='mrc',
         metadata={"help": "Wandb Project Name"}

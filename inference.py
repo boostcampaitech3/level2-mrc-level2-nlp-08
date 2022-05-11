@@ -26,8 +26,9 @@ from datasets import (
     load_from_disk,
     load_metric,
 )
-from retrieval.SparseRetrieval import SparseRetrieval
-from retrieval.BM25 import BM25_PLUS
+
+from retrieval.BM25 import *
+
 from trainer_qa import QuestionAnsweringTrainer
 from transformers import (
     AutoConfig,
@@ -241,46 +242,7 @@ def run_mrc(
             ]
         return tokenized_examples
 
-
-    with open("f.pickle", "rb") as f:
-        ori_val = pickle.load(f)  # 개발자가 만든 Class의 Instance 또한 저장 가능
-
-    with open("e.pickle", "rb") as f:
-        ans_val = pickle.load(f)  # 개발자가 만든 Class의 Instance 또한 저장 가능
-
-    valid_data = datasets["validation"]
-
-    check = ['은?', '는?', '이?']
-    valid_data = datasets['validation'].to_pandas()
-    for i in tqdm(range(len(ans_val))):
-        string = ori_val[i].split()[-1]
-        for j in range(3):
-            if string.endswith(check[j]):
-                if 'who' in ans_val[i] or "사람" in ori_val[i]:
-                    valid_data['question'][i] = valid_data['question'][i].replace("?", " 누구일까요?")
-                elif 'where' in ans_val[i] or "장소" in ori_val[i]:
-                    valid_data['question'][i] = valid_data['question'][i].replace("?", " 어디일까요?")
-                elif "when" in ans_val[i] or "언제" in ori_val[i]:
-                    valid_data['question'][i] = valid_data['question'][i].replace("?", " 언제일까요?")
-                else:
-                    valid_data['question'][i] = valid_data['question'][i].replace("?", " 무엇일까요?")
-                break
-            elif '?' not in string:
-                if 'who' in ans_val[i] or "사람" in ori_val[i]:
-                    valid_data['question'][i] = valid_data['question'][i] + " 누구일까요?"
-                elif 'where' in ans_val[i] or "장소" in ori_val[i]:
-                    valid_data['question'][i] = valid_data['question'][i] + " 어디일까요?"
-                elif "when" in ans_val[i] or "언제" in ori_val[i]:
-                    valid_data['question'][i] = valid_data['question'][i] + " 언제일까요?"
-                else:
-                    valid_data['question'][i] = valid_data['question'][i] + " 무엇일까요?"
-
-                break
-
-    eval_dataset = da.Dataset.from_pandas(valid_data)
-
-    for i in range(5):
-        print(eval_dataset['question'][i])
+    eval_dataset = datasets["validation"]
 
 
     # Validation Feature 생성

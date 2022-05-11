@@ -1,16 +1,14 @@
 import logging
-import sys
 from typing import NoReturn
 import os
 import torch.cuda
-from sklearn.model_selection import KFold
+from model import get_model
 
 from arguments import *
 from Data.preprocessing import *
 import wandb
 
 from datasets import DatasetDict, load_from_disk, load_metric
-from konlpy.tag import Kkma
 import pandas as pd
 
 from tqdm import tqdm
@@ -21,7 +19,6 @@ import pickle
 
 from datasets import load_dataset
 
-from model import Birdirectional_model
 from trainer_qa import QuestionAnsweringTrainer
 from transformers import (
     AutoConfig,
@@ -33,7 +30,6 @@ from transformers import (
     TrainingArguments,
     set_seed, PreTrainedTokenizerFast,
 )
-from kobert_tokenizer import KoBERTTokenizer
 
 from utils_qa import check_no_error, postprocess_qa_predictions
 import wandb
@@ -63,14 +59,7 @@ def main():
         use_fast=True,
     )
 
-    model = AutoModelForQuestionAnswering.from_pretrained(
-        model_args.model_name_or_path,
-        from_tf=bool(".ckpt" in model_args.model_name_or_path),
-        config=config,
-    )
-
-    # model = Birdirectional_model(config=config)
-
+    model = get_model(model_args=model_args, config=config)
 
     if training_args.do_train or training_args.do_eval:
         run_mrc(data_args, training_args, model_args, tokenizer, model)
@@ -84,18 +73,6 @@ def run_mrc(
 ) -> NoReturn:
 
     datasets = load_from_disk(data_args.dataset_name)
-
-    with open("a.pickle", "rb") as f:
-        ans = pickle.load(f)  # 개발자가 만든 Class의 Instance 또한 저장 가능
-
-    with open("b.pickle", "rb") as f:
-        ori = pickle.load( f)  # 개발자가 만든 Class의 Instance 또한 저장 가능
-
-    with open("d.pickle", "rb") as f:
-        ans_val = pickle.load(f)  # 개발자가 만든 Class의 Instance 또한 저장 가능
-
-    with open("c.pickle", "rb") as f:
-        ori_val = pickle.load( f)  # 개발자가 만든 Class의 Instance 또한 저장 가능
 
     # dataset을 전처리합니다.
     # training과 evaluation에서 사용되는 전처리는 아주 조금 다른 형태를 가집니다.
@@ -111,8 +88,6 @@ def run_mrc(
     # Padding에 대한 옵션을 설정합니다.
     # (question|context) 혹은 (context|question)로 세팅 가능합니다.
     pad_on_right = tokenizer.padding_side == "right"
-
-
 
     # 오류가 있는지 확인합니다.
     """
@@ -132,82 +107,6 @@ def run_mrc(
             raise ValueError("--do_train requires a train dataset")
         train_dataset = datasets["train"]
 
-        check = ['은?', '는?', '이?']
-        train_data = datasets['train'].to_pandas()
-        for i in tqdm(range(len(ans))):
-            string = ori[i].split()[-1]
-            for j in range(3):
-                if string.endswith(check[j]):
-                    if 'who' in ans[i] or "사람" in ori[i]:
-                        train_data['question'][i] = train_data['question'][i].replace("?", " 누구일까요?")
-                    elif 'where' in ans[i] or "장소" in ori[i]:
-                        train_data['question'][i] = train_data['question'][i].replace("?", " 어디일까요?")
-                    elif "when" in ans[i] or "언제" in ori[i]:
-                        train_data['question'][i] = train_data['question'][i].replace("?", " 언제일까요?")
-                    else:
-                        train_data['question'][i] = train_data['question'][i].replace("?", " 무엇일까요?")
-                    break
-                elif '?' not in string:
-                    if 'who' in ans[i] or "사람" in ori[i]:
-                        train_data['question'][i] = train_data['question'][i] + " 누구일까요?"
-                    elif 'where' in ans[i] or "장소" in ori[i]:
-                        train_data['question'][i] = train_data['question'][i] + " 어디일까요?"
-                    elif "when" in ans[i] or "언제" in ori[i]:
-                        train_data['question'][i] = train_data['question'][i] + " 언제일까요?"
-                    else:
-                        train_data['question'][i] = train_data['question'][i] + " 무엇일까요?"
-
-                    print(train_data['question'][i])
-
-                    break
-
-        train_dataset = da.Dataset.from_pandas(train_data)
-        """
-        for i in tqdm(range(len(train_dataset))):
-            if train_dataset['answers'][i]['text'][0].endswith(')'):
-                train_dataset['answers'][i]['text'][0] = train_dataset['answers'][i]['text'][0].split("(")[0]
-        """
-
-        """
-        #############
-        train_data = train_dataset.to_pandas()
-
-        def get_jaccard_sim(str1, str2):
-            a = set(str1.split())
-            b = set(str2.split())
-            c = a.intersection(b)
-            return float(len(c)) / (len(a) + len(b) - len(c))
-
-        sim = []
-        for i in tqdm(range(len(train_data))):
-            sim.append(get_jaccard_sim(train_data['question'][i], train_data['title'][i]))
-
-        train_data['sim'] = sim
-
-        train_data.sort_values('sim', ascending=False, inplace=True)
-
-        del train_data['sim'], train_data['__index_level_0__']
-
-
-        train_dataset = da.Dataset.from_pandas(train_data)
-
-        #############
-        """
-        """
-        ###############
-        # Kosquad 합치는 방법
-        kosquad = load_dataset("squad_kor_v1")
-
-        df = train_dataset.to_pandas()
-        df2 = kosquad['train'].to_pandas()[['title', 'context', 'question', 'answers']]
-        df3 = kosquad['validation'].to_pandas()[['title', 'context', 'question', 'answers']]
-
-        df = pd.concat([df, df2, df3], axis = 0).sample(frac=1).reset_index(drop=True)
-
-        train_dataset = da.Dataset.from_pandas(df)
-        
-        #####################
-        """
         # dataset에서 train feature를 생성합니다.
         train_dataset = train_dataset.map(
             function=lambda x: prepare_train_features(x, **dict_data),
@@ -219,39 +118,8 @@ def run_mrc(
 
     if training_args.do_eval:
         eval_dataset = datasets["validation"]
-        """
-        for i in tqdm(range(len(eval_dataset))):
-            if eval_dataset['answers'][i]['text'][0].endswith(')'):
-                eval_dataset['answers'][i]['text'][0] = eval_dataset['answers'][i]['text'][0].split("(")[0]
-        """
-        check = ['은?', '는?', '이?']
-        valid_data = datasets['validation'].to_pandas()
-        for i in tqdm(range(len(ans_val))):
-            string = ori_val[i].split()[-1]
-            for j in range(3):
-                if string.endswith(check[j]):
-                    if 'who' in ans_val[i] or "사람" in ori_val[i]:
-                        valid_data['question'][i] = valid_data['question'][i].replace("?", " 누구일까요?")
-                    elif 'where' in ans_val[i] or "장소" in ori_val[i]:
-                        valid_data['question'][i] = valid_data['question'][i].replace("?", " 어디일까요?")
-                    elif "when" in ans_val[i] or "언제" in ori_val[i]:
-                        valid_data['question'][i] = valid_data['question'][i].replace("?", " 언제일까요?")
-                    else:
-                        valid_data['question'][i] = valid_data['question'][i].replace("?", " 무엇일까요?")
-                    break
-                elif '?' not in string:
-                    if 'who' in ans_val[i] or "사람" in ori_val[i]:
-                        valid_data['question'][i] = valid_data['question'][i] + " 누구일까요?"
-                    elif 'where' in ans_val[i] or "장소" in ori_val[i]:
-                        valid_data['question'][i] = valid_data['question'][i] + " 어디일까요?"
-                    elif "when" in ans_val[i] or "언제" in ori_val[i]:
-                        valid_data['question'][i] = valid_data['question'][i] + " 언제일까요?"
-                    else:
-                        valid_data['question'][i] = valid_data['question'][i] + " 무엇일까요?"
 
-                    break
-
-        eval_dataset = da.Dataset.from_pandas(valid_data)
+        # eval_dataset = da.Dataset.from_pandas(valid_data)
 
         # Validation Feature 생성
         eval_dataset = eval_dataset.map(
@@ -309,8 +177,8 @@ def run_mrc(
         compute_metrics=compute_metrics,
     )
 
-    # num_training_steps = training_args.num_train_epochs * len(train_dataset)
-   #  trainer.create_optimizer_and_scheduler(num_training_steps=num_training_steps)
+    num_training_steps = training_args.num_train_epochs * len(train_dataset)
+    trainer.create_optimizer_and_scheduler(num_training_steps=num_training_steps)
 
     # Training
     if training_args.do_train:

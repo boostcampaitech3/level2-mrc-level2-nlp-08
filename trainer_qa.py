@@ -116,4 +116,3 @@ class QuestionAnsweringTrainer(Trainer):
             test_examples, test_dataset, output.predictions, self.args
         )
         return predictions
-
