@@ -65,6 +65,9 @@ class QuestionAnsweringTrainer(Trainer):
             )
             metrics = self.compute_metrics(eval_preds)
 
+            metrics['eval_f1'] = metrics.pop('f1')
+            metrics['eval_exact_match'] = metrics.pop('exact_match')
+
             self.log(metrics)
         else:
             metrics = {}
