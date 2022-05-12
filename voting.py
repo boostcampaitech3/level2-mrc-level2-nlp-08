@@ -67,4 +67,4 @@ for k, v in enumerate(zip(*voting)):
     answers[voting_keys[k]] = Counter(list(v)).most_common(1)[0][0]
 
 with open ("voting.json", "w", encoding="utf-8") as f:
-    json.dump(answers, f, indent="\t")
+    json.dump(answers, f, ensure_ascii=False, indent="\t")
