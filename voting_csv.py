@@ -8,6 +8,7 @@ def search(dirname, file_type):
     for file in filedirs:
         if f".{file_type}" in file:
             files.append(file)
+    files.sort()  # 파일 이름대로 정렬
     return files
 
 files = search(".", "csv")
