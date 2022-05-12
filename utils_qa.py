@@ -108,7 +108,7 @@ def postprocess_qa_predictions(
     features_per_example = collections.defaultdict(list)
     for i, feature in enumerate(features):
         features_per_example[example_id_to_index[feature["example_id"]]].append(i)
-
+        
     # prediction, nbest에 해당하는 OrderedDict 생성합니다.
     all_predictions = collections.OrderedDict()
     all_nbest_json = collections.OrderedDict()
@@ -354,3 +354,10 @@ def check_no_error(
     if "validation" not in datasets:
         raise ValueError("--do_eval requires a validation dataset")
     return last_checkpoint, max_seq_length
+
+def dict2str(example):
+    example['answers'] = str(example['answers'])
+    return example
+def str2dict(example):
+    example['answers'] = eval(example['answers'])
+    return example
