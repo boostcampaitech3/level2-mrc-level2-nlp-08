@@ -45,9 +45,11 @@ class ElasticSearch:
             Passage 파일을 불러오고 TfidfVectorizer를 선언하는 기능을 합니다.
         """
         self.args = return_arg4ES()
-        ELASTIC_PASSWORD = ""
+        with open('key.json') as json_file:
+            key = json.load(json_file)
+        ELASTIC_PASSWORD = key['ELASTIC_PASSWORD']
 
-        CLOUD_ID = "elastic:"
+        CLOUD_ID = key['CLOUD_ID']
 
         # Create the client instance
         self.es = Elasticsearch(

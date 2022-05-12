@@ -119,10 +119,10 @@ def run_sparse_retrieval(
     )
     retriever.get_sparse_embedding()
     ###
-    ### ES
+    ## ES
     # retriever = ElasticSearch(data_path=data_path, context_path=context_path)
     # retriever.insert_data()
-    ###
+    ##
 
     if data_args.use_faiss:
         retriever.build_faiss(num_clusters=data_args.num_clusters)

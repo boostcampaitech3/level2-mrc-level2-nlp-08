@@ -1,5 +1,5 @@
 TrainingArguments:
-    output_dir: './prediction0511/'
+    output_dir: './prediction0511-4/'
     save_total_limit: 5
     save_steps: 200
     seed: 42
@@ -26,7 +26,7 @@ TrainingArguments:
 
 
 ModelArguments:
-    model_name_or_path: './output0511-base'
+    model_name_or_path: './output0511-4'
     config_name: null
     tokenizer_name: null
 
