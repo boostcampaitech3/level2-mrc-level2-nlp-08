@@ -5,22 +5,22 @@ from collections import Counter
 def search(dirname):
     files = []
     filedirs = os.listdir(dirname)
-    for file in filedirs:
-        if file.split(".")[-1] in ["csv", "json"]:
-            files.append(file)
+    for doc in filedirs:
+        if doc.split(".")[-1] in ["csv", "json"]:
+            files.append(doc)
     files.sort()
     return files
 
 # finding prediction ids
-def finding_keys(file):
+def finding_keys(doc):
     voting_keys = []
     
-    if file.split(".")[-1] == "json":
-        with open (file, "r") as f:
+    if doc.split(".")[-1] == "json":
+        with open (doc, "r") as f:
             voting_keys = list(json.load(f).keys())
     
     else:
-        with open(file, "r") as f:
+        with open(doc, "r") as f:
             lines = f.readlines()
             lines = list(map(lambda s: s.strip(), lines))
             lines = lines[1:-1]
@@ -34,16 +34,16 @@ def finding_keys(file):
 # finding prediction values
 def finding_values(files):
     voting = []
-    for file in files:
-        if file.split(".")[-1] == "json":
-            with open (file, "r") as f:
+    for doc in files:
+        if doc.split(".")[-1] == "json":
+            with open (doc, "r") as f:
                 temp = json.load(f)
                 temp = list(temp.values())
                 voting.append(temp)
         
         else:
             temp = []
-            with open(file, "r") as f:
+            with open(doc, "r") as f:
                 lines = f.readlines()
                 lines = list(map(lambda s: s.strip(), lines))
                 lines = lines[1:-1]
