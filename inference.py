@@ -93,15 +93,13 @@ def main():
         else model_args.model_name_or_path,
         use_fast=True,
     )
-    """
+
+
     model = AutoModelForQuestionAnswering.from_pretrained(
         model_args.model_name_or_path,
         from_tf=bool(".ckpt" in model_args.model_name_or_path),
         config=config,
     )
-    """
-
-    model = torch.load('./output/full_model.pt')
 
     # True일 경우 : run passage retrieval
     if data_args.eval_retrieval:
@@ -243,7 +241,6 @@ def run_mrc(
         return tokenized_examples
 
     eval_dataset = datasets["validation"]
-
 
     # Validation Feature 생성
     eval_dataset = eval_dataset.map(

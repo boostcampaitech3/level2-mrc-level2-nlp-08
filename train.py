@@ -2,6 +2,8 @@ import logging
 from typing import NoReturn
 import os
 import torch.cuda
+
+from Data.change import change_question
 from model import get_model
 
 from arguments import *
@@ -61,6 +63,7 @@ def main():
 
     model = get_model(model_args=model_args, config=config)
 
+
     if training_args.do_train or training_args.do_eval:
         run_mrc(data_args, training_args, model_args, tokenizer, model)
 
@@ -107,6 +110,8 @@ def run_mrc(
             raise ValueError("--do_train requires a train dataset")
         train_dataset = datasets["train"]
 
+        # train_dataset = change_question(train_dataset, mode='train')
+
         # dataset에서 train feature를 생성합니다.
         train_dataset = train_dataset.map(
             function=lambda x: prepare_train_features(x, **dict_data),
@@ -118,6 +123,8 @@ def run_mrc(
 
     if training_args.do_eval:
         eval_dataset = datasets["validation"]
+
+        # eval_dataset = change_question(eval_dataset)
 
         # eval_dataset = da.Dataset.from_pandas(valid_data)
 
@@ -177,8 +184,8 @@ def run_mrc(
         compute_metrics=compute_metrics,
     )
 
-    num_training_steps = training_args.num_train_epochs * len(train_dataset)
-    trainer.create_optimizer_and_scheduler(num_training_steps=num_training_steps)
+    # num_training_steps = training_args.num_train_epochs * len(train_dataset)
+    # trainer.create_optimizer_and_scheduler(num_training_steps=num_training_steps)
 
     # Training
     if training_args.do_train:
@@ -214,8 +221,6 @@ def run_mrc(
         trainer.state.save_to_json(
             os.path.join(training_args.output_dir, "trainer_state.json")
         )
-
-        torch.save(model, './output/full_model.pt')
 
     # Evaluation
     if training_args.do_eval:

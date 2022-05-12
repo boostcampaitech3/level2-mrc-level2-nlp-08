@@ -40,9 +40,9 @@ def concat_koquad(train_dataset):
 
     df = train_dataset.to_pandas()
     df2 = kosquad['train'].to_pandas()[['title', 'context', 'question', 'answers']]
-    df3 = kosquad['validation'].to_pandas()[['title', 'context', 'question', 'answers']]
+    # df3 = kosquad['validation'].to_pandas()[['title', 'context', 'question', 'answers']]
 
-    df = pd.concat([df, df2, df3], axis=0).sample(frac=1).reset_index(drop=True)
+    df = pd.concat([df, df2], axis=0).sample(frac=1).reset_index(drop=True)
 
     train_dataset = da.Dataset.from_pandas(df)
 
