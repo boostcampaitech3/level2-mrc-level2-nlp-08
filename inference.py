@@ -44,7 +44,7 @@ def main():
     # 가능한 arguments 들은 ./arguments.py 나 transformer package 안의 src/transformers/training_args.py 에서 확인 가능합니다.
     # --help flag 를 실행시켜서 확인할 수 도 있습니다.
 
-    with open('configs_bolim/inference_args.yaml') as f:
+    with open('configs/inference_args.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
     training_arguments, model_arguments, data_arguments= configs['TrainingArguments'], configs['ModelArguments'], configs['DataTrainingArguments']
     model_args = ModelArguments(**model_arguments)

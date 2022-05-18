@@ -10,7 +10,7 @@ def return_arg():
 
     # [model_args, data_args, training_args,_] = parser.parse_args_into_dataclasses(return_remaining_strings=True)
     
-    with open('configs_bolim/training_args.yaml') as f:
+    with open('configs/training_args.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
     training_arguments, model_arguments, data_arguments = configs['TrainingArguments'], configs['ModelArguments'], configs['DataTrainingArguments']
     model_args = ModelArguments(**model_arguments)
@@ -21,7 +21,7 @@ def return_arg():
 
 
 def return_arg4ES():
-    with open('configs_bolim/retrieval_args.yaml') as f:
+    with open('configs/retrieval_args.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
     es_arguments = configs['ElasticSearchArguments']
     es_args = ElasticSearchArguments(**es_arguments)
