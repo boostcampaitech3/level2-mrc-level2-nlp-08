@@ -23,6 +23,7 @@ from datasets import (
 )
 from retrieval.SparseRetrieval import SparseRetrieval
 from retrieval.BM25 import BM25_PLUS
+from retrieval.ElasticSearch import ElasticSearch
 from trainer_qa import QuestionAnsweringTrainer
 from transformers import (
     AutoConfig,
@@ -43,7 +44,7 @@ def main():
     # 가능한 arguments 들은 ./arguments.py 나 transformer package 안의 src/transformers/training_args.py 에서 확인 가능합니다.
     # --help flag 를 실행시켜서 확인할 수 도 있습니다.
 
-    with open('configs_bolim/inference_args.yaml') as f:
+    with open('configs/inference_args.yaml') as f:
         configs = yaml.load(f, Loader=yaml.FullLoader)
     training_arguments, model_arguments, data_arguments= configs['TrainingArguments'], configs['ModelArguments'], configs['DataTrainingArguments']
     model_args = ModelArguments(**model_arguments)
@@ -112,18 +113,16 @@ def run_sparse_retrieval(
 
     # Query에 맞는 Passage들을 Retrieval 합니다.
     retriever = None
+    ### BM25
     retriever = BM25_PLUS(
         tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
     )
-    # if data_args.bm25:
-    #     retriever = BM25(
-    #         tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
-    #     )
-    # else:
-    #     retriever = SparseRetrieval(
-    #         tokenize_fn=tokenize_fn, data_path=data_path, context_path=context_path
-    #     )
     retriever.get_sparse_embedding()
+    ###
+    ## ES
+    # retriever = ElasticSearch(data_path=data_path, context_path=context_path)
+    # retriever.insert_data()
+    ##
 
     if data_args.use_faiss:
         retriever.build_faiss(num_clusters=data_args.num_clusters)

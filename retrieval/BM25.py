@@ -1,7 +1,6 @@
 import json
 import os
 import pickle
-import time
 from typing import List, NoReturn, Optional, Tuple, Union
 import faiss
 import numpy as np

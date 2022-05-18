@@ -20,9 +20,8 @@ from transformers import (
     set_seed,
 )
 from utils_qa import check_no_error, postprocess_qa_predictions
-import wandb
 
-# wandb.init(project="ODQA", entity="bo-lim",run_name='bolim/top_k 10->30')
+
 logger = logging.getLogger(__name__)
 
 def main():
