@@ -1,16 +1,23 @@
-# Readme
-
-## 소개
-
-ODQA 대회를 위한 코드 
+# Open-Domain Question Answering
+질의에 대해 검색된 한국어 위키피디아 문서에서 원하는 정답을 추출하는 ODQA task
 
 ## [Wrapup Report](https://github.com/boostcampaitech3/level2-mrc-level2-nlp-08/blob/main/assets/MRC_NLP_팀%20리포트(08조).pdf)
-## Members
+
+## About Us
 
 임동진|정재윤|조설아|허치영|이보림|
 :-:|:-:|:-:|:-:|:-:
 <img src='https://avatars.githubusercontent.com/u/72785706?v=4' height=80 width=80px></img>|<img src='https://avatars.githubusercontent.com/u/71070496?v=4' height=80 width=80px></img>|<img src='https://avatars.githubusercontent.com/u/90924434?v=4' height=80 width=80px></img>|<img src='https://avatars.githubusercontent.com/u/69616444?v=4' height=80 width=80px></img>|<img src='https://avatars.githubusercontent.com/u/55435898?v=4' height=80 width=80px></img>|
 [Github](https://github.com/idj7183)|[Github](https://github.com/kma7574)|[Github](https://github.com/jarammm)|[Github](https://github.com/mooncy0421)|[Github](https://github.com/bo-lim)
+
+### Contribution  
+
+`임동진` &nbsp; : &nbsp; Implement QA Model(Add Clasifier, Freezing) • Compare Pre-trained Model <br>
+`정재윤` &nbsp; : &nbsp; Data Cleaning • Data Augmentation • Hyperparameter Tuning <br>
+`조설아` &nbsp; : &nbsp; Implement Retriever(Dense, Hybrid) • Model Ensemble(Voting) <br>
+`허치영` &nbsp; : &nbsp; Implement QA Model(T5) • Additional Dataset(KorQuAD) <br>
+`이보림` &nbsp; : &nbsp; Implement Retriever(Elastic Search, BM25) • Model Ensemble(Voting) • K-Fold Cross Validation • Data Preprocessing <br>
+
 ## 설치 방법
 
 ### 요구 사항
